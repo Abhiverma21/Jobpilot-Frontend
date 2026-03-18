@@ -106,8 +106,8 @@ const SignUp = () => {
       console.log(res);
       setSuccess(true);
       setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+        navigate("/verify-otp", { state: { email: formData.email } });
+      }, 1800);
     } catch (err) {
       console.log(err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
@@ -129,7 +129,7 @@ const SignUp = () => {
             Account Created!
           </h2>
           <p className="text-gray-600">
-            Your account has been successfully created. Redirecting to login...
+            An OTP has been sent to your email. Redirecting to verification...
           </p>
         </div>
       </div>

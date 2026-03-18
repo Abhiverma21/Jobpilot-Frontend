@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import HomePage from "./pages/HomePage";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import VerifyOTP from "./pages/VerifyOTP";
 import Dashboard from "./pages/Dashboard";
 import AddJob from "./pages/AddJob";
 import JobDetail from "./pages/JobDetail";
@@ -24,6 +25,7 @@ function App() {
               <Route path="/" element={<HomePage/>} />
               <Route path="/login" element={<Login/>} />
               <Route path="/signup" element={<SignUp/>} />
+              <Route path="/verify-otp" element={<VerifyOTP/>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} />
               <Route path="/addjob" element={<ProtectedRoute><AddJob/></ProtectedRoute>} />
               <Route path="/jobdetail/:id" element={<ProtectedRoute><JobDetail/></ProtectedRoute>} />
