@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect } from "react";
+import API from "../api/axios";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
@@ -20,22 +21,13 @@ export const AuthProvider = ({children}) =>{
 
     const fetchUserProfile = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/profile", {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem("token")}`
-                }
+            const response = await API.get("/auth/profile");
+            const userData = response.data;
+            setUser({
+                _id: userData._id,
+                name: userData.username,
+                email: userData.email
             });
-            if (response.ok) {
-                const userData = await response.json();
-                setUser({
-                    _id: userData._id,
-                    name: userData.username,
-                    email: userData.email
-                });
-            } else {
-                // Token might be invalid, remove it
-                localStorage.removeItem("token");
-            }
         } catch (error) {
             console.log("Error fetching user profile:", error);
             localStorage.removeItem("token");
