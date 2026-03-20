@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import AddJob from "./pages/AddJob";
 import JobDetail from "./pages/JobDetail";
 import UploadResume from "./pages/UploadResume";
+import Profile from "./pages/Profile";
 
 function App() {
 
@@ -27,6 +28,7 @@ function App() {
               <Route path="/signup" element={<SignUp/>} />
               <Route path="/verify-otp" element={<VerifyOTP/>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard/></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile/></ProtectedRoute>} />
               <Route path="/addjob" element={<ProtectedRoute><AddJob/></ProtectedRoute>} />
               <Route path="/jobdetail/:id" element={<ProtectedRoute><JobDetail/></ProtectedRoute>} />
               <Route path="/upload-resume" element={<ProtectedRoute><UploadResume/></ProtectedRoute>} />
