@@ -70,17 +70,14 @@ const Profile = () => {
         formData.append("profilePic", profileImage);
       }
 
-      await API.put("/auth/profile", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await API.put("/auth/profile", formData); // Do not set Content-Type manually; axios handles boundary
 
       await fetchUserProfile();
       setIsEditing(false);
       setProfileImage(null);
     } catch (err) {
-      console.log(err);
+      console.error("Profile update failed:", err.response?.data || err.message || err);
+      // Optional: show inline error to user (if you add state for this)
     }
   };
 
