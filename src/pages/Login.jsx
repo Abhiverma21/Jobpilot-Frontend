@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import API from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.jpeg';
 
 const Login = () => {
   const { login } = useContext(AuthContext);
@@ -97,15 +98,13 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-start justify-center pt-10 pb-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-            <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+        <div className="text-center ">
+          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg overflow-hidden">
+            <img src={logo} alt="Logo" className="h-16 w-16 object-cover" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-3 text-3xl font-extrabold text-gray-900">
             Welcome back
           </h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -113,15 +112,15 @@ const Login = () => {
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={submitData}>
-          <div className="bg-white py-8 px-6 shadow-xl rounded-lg border border-gray-100">
+        <form className="mt-6 space-y-4" onSubmit={submitData}>
+          <div className="bg-white py-6 px-6 shadow-xl rounded-lg border border-gray-100">
             {error && (
               <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                 {error}
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email address

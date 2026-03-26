@@ -12,7 +12,6 @@ function AddJob(){
   jobLink:"",
   jobDescription:"",
   status:"Applied",
-  interviewDate:"",
   notes:""
  })
 
@@ -32,7 +31,7 @@ function AddJob(){
 
    console.log(res.data)
 
-   navigate("/")
+   navigate("/dashboard")
 
   }catch(err){
    console.log(err.response?.data || err.message)
@@ -41,9 +40,9 @@ function AddJob(){
 
  return(
 
-  <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+  <div className="min-h-screen bg-gray-100 flex items-center justify-center py-6 px-4">
 
-   <div className="bg-white p-8 rounded-lg shadow-md w-[550px]">
+   <div className="bg-white p-6 sm:p-8 rounded-lg shadow-md w-full max-w-md">
 
     <h2 className="text-2xl font-bold mb-6 text-center">
      Add New Job
@@ -99,13 +98,13 @@ function AddJob(){
       <option value="Offer">Offer</option>
      </select>
 
-     <input
+     {/* <input
       type="date"
       name="interviewDate"
       value={formData.interviewDate}
       onChange={handleChange}
       className="w-full border p-2 rounded"
-     />
+     /> */}
 
      <textarea
       name="notes"

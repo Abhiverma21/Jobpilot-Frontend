@@ -2,291 +2,272 @@ import { useEffect, useState, useRef } from "react"
 import { useNavigate } from "react-router-dom"
 import API from "../api/axios"
 
-function Dashboard(){
- const navigate = useNavigate()
+function Dashboard() {
+  const navigate = useNavigate()
 
- const [jobs,setJobs] = useState([])
- const [uploadedResume, setUploadedResume] = useState(null)
- const [uploading, setUploading] = useState(false)
- const [message, setMessage] = useState({ type: '', text: '' })
- const [missingSkills, setMissingSkills] = useState({})
- const fileInputRef = useRef(null)
- const messageTimeoutRef = useRef(null)
+  // --- States ---
+  const [jobs, setJobs] = useState([])
+  const [uploadedResume, setUploadedResume] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const [message, setMessage] = useState({ type: '', text: '' })
+  const [missingSkills, setMissingSkills] = useState({})
+  const [showNoResumeModal, setShowNoResumeModal] = useState(false) // For the Alert Pop-up
+  
+  const fileInputRef = useRef(null)
+  const messageTimeoutRef = useRef(null)
 
- const showMessage = (type, text) => {
-  setMessage({ type, text })
-  if (messageTimeoutRef.current) {
-    clearTimeout(messageTimeoutRef.current)
-  }
-  messageTimeoutRef.current = setTimeout(() => {
-    setMessage({ type: '', text: '' })
-  }, 3000)
- }
-
- useEffect(()=>{
-
-  const fetchJobs = async()=>{
-
-   try{
-
-    const res = await API.get("/jobs/getjobs")
-
-    setJobs(res.data.jobs)
-
-   }catch(err){
-    console.log(err)
-   }
-
-  } 
-
-  const fetchResume = async () => {
-    try {
-      const res = await API.get('/resume/getresume')
-      setUploadedResume(res.data)
-    } catch (err) {
-      console.log('No resume found or error:', err)
+  // --- Helper: Show Toast Message ---
+  const showMessage = (type, text) => {
+    setMessage({ type, text })
+    if (messageTimeoutRef.current) {
+      clearTimeout(messageTimeoutRef.current)
     }
+    messageTimeoutRef.current = setTimeout(() => {
+      setMessage({ type: '', text: '' })
+    }, 4000)
   }
 
-  fetchJobs()
-  fetchResume()
+  // --- Initial Data Fetch ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [jobsRes, resumeRes] = await Promise.allSettled([
+          API.get("/jobs/getjobs"),
+          API.get('/resume/getresume')
+        ]);
 
- },[])
-
- const handleFileUpload = async (e) => {
-  const file = e.target.files[0]
-  if (!file) return
-
-  const formData = new FormData()
-  formData.append('resume', file)
-
-  setUploading(true)
-  try {
-    const res = await API.post('/resume/uploadresume', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
+        if (jobsRes.status === 'fulfilled') {
+          setJobs(jobsRes.value.data.jobs || []);
+        }
+        if (resumeRes.status === 'fulfilled') {
+          setUploadedResume(resumeRes.value.data);
+        }
+      } catch (err) {
+        console.error("Dashboard data fetch error:", err);
       }
-    })
-    setUploadedResume(res.data)
-    showMessage('success', 'Resume uploaded successfully!')
-  } catch (err) {
-    console.log(err)
-    showMessage('error', err.response?.data?.message || 'Failed to upload resume')
-  } finally {
-    setUploading(false)
-  }
- }
+    };
+    fetchData();
+  }, [])
 
- const handleDeleteResume = async () => {
-  try {
-    await API.delete('/resume/deleteresume')
-    setUploadedResume(null)
-    setJobs(jobs.map(job => job.matchScore > 0 ? { ...job, matchScore: 0 } : job))
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
+  // --- File Upload ---
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('resume', file)
+
+    setUploading(true)
+    try {
+      const res = await API.post('/resume/uploadresume', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      setUploadedResume(res.data)
+      showMessage('success', 'Resume uploaded successfully!')
+    } catch (err) {
+      showMessage('error', err.response?.data?.message || 'Upload failed')
+    } finally {
+      setUploading(false)
     }
-    showMessage('success', 'Resume deleted successfully!')
-  } catch (err) {
-    console.log(err)
-    showMessage('error', err.response?.data?.message || 'Failed to delete resume')
-  }
- }
-
- const handleMatch = async (jobId) => {
-  if (!uploadedResume) {
-    showMessage('error', 'Please upload a resume first')
-    return
   }
 
-  try {
-    const res = await API.post(`/jobs/${jobId}/match`, {
-      resumeId: uploadedResume._id
-    })
-    
-    // Update the job's match score in the state
-    setJobs(jobs.map(job => 
-      job._id === jobId 
-        ? { ...job, matchScore: res.data.matchScore } 
-        : job
-    ))
-    setMissingSkills(prev => ({ ...prev, [jobId]: res.data.missing || [] }))
-    showMessage('success', `Match score: ${res.data.matchScore}%`)
-
-  } catch (err) {
-    console.log(err)
-    showMessage('error', err.response?.data?.message || 'Failed to calculate match')
+  // --- Delete Resume ---
+  const handleDeleteResume = async () => {
+    try {
+      await API.delete('/resume/deleteresume')
+      setUploadedResume(null)
+      setJobs(jobs.map(j => ({ ...j, matchScore: 0 })))
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      showMessage('success', 'Resume removed')
+    } catch (err) {
+      showMessage('error', 'Failed to delete resume')
+    }
   }
- }
 
- const handleUpdateStatus = async (jobId, newStatus) => {
-  try {
-    const res = await API.put(`/jobs/${jobId}/updatejob`, { status: newStatus })
-    setJobs(jobs.map(job => 
-      job._id === jobId 
-        ? { ...job, status: res.data.status } 
-        : job
-    ))
-    showMessage('success', `Status updated to ${newStatus}`)
-  } catch (err) {
-    console.log(err)
-    showMessage('error', err.response?.data?.message || 'Failed to update status')
+  // --- Match Logic (With Pop-up Trigger) ---
+  const handleMatch = async (jobId) => {
+    if (!uploadedResume) {
+      setShowNoResumeModal(true); // TRIGGER POP-UP
+      return
+    }
+
+    try {
+      const res = await API.post(`/jobs/${jobId}/match`, {
+        resumeId: uploadedResume._id
+      })
+      
+      setJobs(jobs.map(job => 
+        job._id === jobId ? { ...job, matchScore: res.data.matchScore } : job
+      ))
+      setMissingSkills(prev => ({ ...prev, [jobId]: res.data.missing || [] }))
+      showMessage('success', `Match Score: ${res.data.matchScore}%`)
+    } catch (err) {
+      showMessage('error', 'Matching failed')
+    }
   }
- }
 
- const handleDeleteJob = async (jobId) => {
-  try {
-    await API.delete(`/jobs/${jobId}/deletejob`)
-    setJobs(jobs.filter(job => job._id !== jobId))
-    setMissingSkills(prev => {
-      const updated = { ...prev }
-      delete updated[jobId]
-      return updated
-    })
-    showMessage('success', 'Job deleted successfully!')
-  } catch (err) {
-    console.log(err)
-    showMessage('error', err.response?.data?.message || 'Failed to delete job')
+  // --- Update Job Status ---
+  const handleUpdateStatus = async (jobId, newStatus) => {
+    try {
+      const res = await API.put(`/jobs/${jobId}/updatejob`, { status: newStatus })
+      setJobs(jobs.map(job => 
+        job._id === jobId ? { ...job, status: res.data.status } : job
+      ))
+      showMessage('success', `Status: ${newStatus}`)
+    } catch (err) {
+      showMessage('error', 'Update failed')
+    }
   }
- }
 
- return(
+  // --- Delete Job ---
+  const handleDeleteJob = async (jobId) => {
+    if(!window.confirm("Are you sure?")) return;
+    try {
+      await API.delete(`/jobs/${jobId}/deletejob`)
+      setJobs(jobs.filter(job => job._id !== jobId))
+      showMessage('success', 'Job deleted')
+    } catch (err) {
+      showMessage('error', 'Delete failed')
+    }
+  }
 
-  <div className="min-h-screen bg-gray-100 p-10">
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 md:p-10 relative">
 
-   {message.text && (
-    <div className={`mb-6 p-4 rounded-lg text-white font-semibold ${message.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-      {message.text}
-    </div>
-   )}
-
-   <h1 className="text-2xl font-bold mb-6">
-    Your Jobs
-   </h1>
-   <button
-    onClick={() => navigate('/addjob')}
-    className="mb-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded transition-colors duration-200"
-   >
-    + Add Job
-   </button>
-
-   {/* Resume Upload Section */}
-   <div className="bg-white p-6 rounded-lg shadow-lg mb-8">
-    <h2 className="text-xl font-semibold mb-4">Upload Resume</h2>
-    <div className="flex items-center space-x-4">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf"
-        onChange={handleFileUpload}
-        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-        disabled={uploading}
-      />
-      {uploading && <span className="text-blue-600">Uploading...</span>}
-      {uploadedResume && (
-        <div className="flex items-center space-x-2">
-          <span className="text-green-600">Resume uploaded: {uploadedResume.fileName}</span>
-          <button
-            onClick={handleDeleteResume}
-            className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600"
-          >
-            Delete
-          </button>
+      {/* 1. FIXED TOAST NOTIFICATION */}
+      {message.text && (
+        <div className={`fixed top-8 right-8 z-[100] px-6 py-3 rounded-xl shadow-2xl text-white font-bold transform transition-all animate-in slide-in-from-right-10 ${
+          message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        }`}>
+          {message.type === 'success' ? '✅' : '❌'} {message.text}
         </div>
       )}
-    </div>
-   </div>
 
-   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-    {jobs.map((job)=>(
-     
-     <div
-      key={job._id}
-      className="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 border border-gray-200"
-     >
-
-      <h2 className="text-xl font-semibold text-gray-800 mb-2">
-       {job.companyName}
-      </h2>
-
-      <p className="text-gray-600 mb-3">
-       {job.role}
-      </p>
-
-      <div className="flex justify-between items-center mb-2">
-        <select
-          value={job.status}
-          onChange={(e) => handleUpdateStatus(job._id, e.target.value)}
-          className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${
-            job.status === 'Applied' ? 'bg-blue-100 text-blue-800' :
-            job.status === 'Interview' ? 'bg-yellow-100 text-yellow-800' :
-            job.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-            job.status === 'Selected' ? 'bg-green-100 text-green-800' :
-            'bg-gray-100 text-gray-800'
-          }`}
-        >
-          <option value="Applied">Applied</option>
-          <option value="Interview">Interview</option>
-          <option value="Rejected">Rejected</option>
-          <option value="Selected">Selected</option>
-        </select>
-        <button
-          onClick={() => handleDeleteJob(job._id)}
-          className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
-        >
-          Delete
-        </button>
-      </div>
-
-      <div className="flex items-center mb-4">
-        <span className="text-sm text-gray-500 mr-2">Match Score:</span>
-        <div className="flex-1 bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-green-500 h-2 rounded-full" 
-            style={{ width: `${job.matchScore || 0}%` }}
-          ></div>
-        </div>
-        <span className="text-sm font-semibold text-gray-700 ml-2">{job.matchScore || 0}%</span>
-      </div>
-
-      {missingSkills[job._id] && missingSkills[job._id].length > 0 && (
-        <div className="mb-4 p-3 bg-red-50 rounded">
-          <p className="text-sm font-semibold text-red-800 mb-2">Missing Skills:</p>
-          <div className="flex flex-wrap gap-2">
-            {missingSkills[job._id].map((skill, idx) => (
-              <span key={idx} className="px-2 py-1 bg-red-200 text-red-800 text-xs rounded">
-                {skill}
-              </span>
-            ))}
+      {/* 2. NO RESUME POP-UP MODAL */}
+      {showNoResumeModal && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 text-3xl">⚠️</div>
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Wait a second!</h3>
+            <p className="text-gray-500 mb-8 leading-relaxed">
+              We can't analyze your match score without a resume. Please upload one first.
+            </p>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                   setShowNoResumeModal(false);
+                   window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg"
+              >
+                Upload Resume Now
+              </button>
+              <button onClick={() => setShowNoResumeModal(false)} className="text-gray-400 font-semibold hover:text-gray-600">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <button
-        onClick={() => handleMatch(job._id)}
-        className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200 mb-2"
-        disabled={!uploadedResume}
-      >
-        Match with Resume
-      </button>
+      <div className="max-w-7xl mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+          <div>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Job Dashboard</h1>
+            {/* <p className="text-gray-500">Track and optimize your job applications</p> */}
+          </div>
+          <button
+            onClick={() => navigate('/addjob')}
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white  rounded-2xl shadow-xl transition-all active:scale-95"
+          >
+            + Add New Application
+          </button>
+        </header>
 
-      <button
-        onClick={() => navigate(`/jobdetail/${job._id}`)}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-colors duration-200"
-      >
-        View Details
-      </button>
+        {/* Resume Card */}
+        <div className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 mb-5 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 text-2xl">📄</div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Your Master Resume</h2>
+              <p className="text-sm text-gray-500">Used for all automated skill-gap analysis</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              onChange={handleFileUpload}
+              className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-6 file:rounded-full file:border-0 file:bg-indigo-600 file:text-white file:font-bold hover:file:bg-indigo-700 cursor-pointer"
+            />
+            {uploadedResume && (
+              <div className="flex items-center gap-3 bg-green-50 px-4 py-2 rounded-full border border-green-200">
+                <span className="text-green-700 text-xs font-bold truncate max-w-[150px]">{uploadedResume.fileName}</span>
+                <button onClick={handleDeleteResume} className="text-red-400 hover:text-red-600 font-bold">✕</button>
+              </div>
+            )}
+          </div>
+        </div>
 
-     </div>
+        {/* Jobs List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {jobs.map((job) => (
+            <div key={job._id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl transition-all group">
+              <div className="flex justify-between items-start mb-2">
+                <h2 className="text-2xl font-bold text-gray-800 truncate pr-4">{job.companyName}</h2>
+                <button onClick={() => handleDeleteJob(job._id)} className="text-gray-300 hover:text-red-500 transition-colors">✕</button>
+              </div>
+              <p className="text-indigo-500 font-bold mb-6">{job.role}</p>
 
-    ))}
+              <div className="mb-6">
+                <select
+                  value={job.status}
+                  onChange={(e) => handleUpdateStatus(job._id, e.target.value)}
+                  className="w-full p-3 rounded-xl bg-gray-50 border-none text-sm font-bold text-gray-600 outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-indigo-200"
+                >
+                  <option value="Applied">Applied</option>
+                  <option value="Interview">Interview</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Selected">Selected</option>
+                </select>
+              </div>
 
-   </div>
+              {/* Progress Bar */}
+              <div className="space-y-2 mb-8">
+                <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <span>Skill Match</span>
+                  <span>{job.matchScore || 0}%</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-700 ${job.matchScore > 75 ? 'bg-green-500' : 'bg-indigo-500'}`} 
+                    style={{ width: `${job.matchScore || 0}%` }}
+                  ></div>
+                </div>
+              </div>
 
-  </div>
-
- )
-
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleMatch(job._id)}
+                  className="flex-1 bg-gray-900 text-white py-3 rounded-xl text-xs font-bold hover:bg-black transition-all shadow-md active:scale-95"
+                >
+                  Quick Match
+                </button>
+                <button
+                  onClick={() => navigate(`/jobdetail/${job._id}`)}
+                  className="flex-1 bg-white text-gray-700 border border-gray-200 py-3 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all"
+                >
+                  Full Profile
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default Dashboard

@@ -25,8 +25,10 @@ export const AuthProvider = ({children}) =>{
             const userData = response.data;
             setUser({
                 _id: userData._id,
+                username: userData.username,
                 name: userData.username,
-                email: userData.email
+                email: userData.email,
+                profilePic: userData.profilePic
             });
         } catch (error) {
             console.log("Error fetching user profile:", error);
@@ -40,8 +42,10 @@ export const AuthProvider = ({children}) =>{
         localStorage.setItem("token" , data.token);
         setUser({
             _id: data._id,
+            username: data.username,
             name: data.username,
-            email: data.email
+            email: data.email,
+            profilePic: data.profilePic
         });
     }
 
