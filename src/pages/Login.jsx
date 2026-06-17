@@ -18,7 +18,7 @@ const Login = () => {
     email: '',
     password: ''
   });
-
+  const [showPassword , setShowPassword] = useState(false);
   const validateField = (name, value) => {
     let error = '';
 
@@ -162,27 +162,46 @@ const Login = () => {
                   Password
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={`appearance-none relative block w-full px-10 py-3 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm transition-colors ${
-                      fieldErrors.password
-                        ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
-                        : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-                    }`}
-                    placeholder="Enter your password"
-                  />
-                </div>
+  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+    <svg
+      className="h-5 w-5 text-gray-400"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+      />
+    </svg>
+  </div>
+
+  <input
+    id="password"
+    name="password"
+    type={showPassword ? "text" : "password"}
+    autoComplete="new-password"
+    required
+    value={formData.password}
+    onChange={handleChange}
+    className={`appearance-none relative block w-full px-10 pr-20 py-3 border placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-2 sm:text-sm transition-colors ${
+      fieldErrors.password
+        ? "border-red-300 focus:ring-red-500 focus:border-red-500"
+        : "border-gray-300 focus:ring-indigo-500 focus:border-indigo-500"
+    }`}
+    placeholder="Create a password"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    className="absolute inset-y-0 right-3 flex items-center text-sm text-indigo-600 font-medium"
+  >
+    {showPassword ? "Hide" : "Show"}
+  </button>
+</div>
                 {fieldErrors.password && (
                   <p className="mt-1 text-sm text-red-600 flex items-center">
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">

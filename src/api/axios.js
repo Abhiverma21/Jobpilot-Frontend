@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api'        // Development
+    ? 'http://localhost:3000/api'        // Development
     : 'https://jobpilot-backend-005n.onrender.com/api';  // Production
 
 const API = axios.create({
